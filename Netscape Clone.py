@@ -13,8 +13,18 @@ execute = ""
 target = ""
 upload_destination = ""
 port = 0
+opts =""
 
 def usage():
+
+
+
+
+
+    """
+
+    :rtype: usage
+    """
     print "BHP Net Tool"
     print
     print "Usage:bhpnet.py -t target_host -p port"
@@ -41,17 +51,20 @@ def main():
     global command
     global upload_destination
     global target
+    global opts
 
     if not len(sys.argv[1:]):
         usage()
 
-     # read the command line options
+
+
      try:
             opts,args= getopt.getopt(sys.argv[1],"hle:t:p:cu:",
                                      ["help","listen","execute","target","port","command","upload"])
      except getopt.GetoptError as err:
-         print str(err)
-         usage()
+            print str(err)
+            usage()
+
 
      for o,a in opts:
          if o in ("-h", "--help"):
@@ -94,17 +107,18 @@ def client_sender(buffer):
         if len(buffer):
                 client.send(buffer)
 
-            while True:
-               recv_len = 1
-               response = ""
+        while True:
 
-                while recv_len:
+            recv_len = 1
+            response = ""
 
-                        data     = client.recv(4096)
-                        recv_len = len(data)
-                        response+= data
+            while recv_len:
 
-                    if recv_len < 4096:
+                data     = client.recv(4096)
+                recv_len = len(data)
+                response+= data
+
+                if recv_len < 4096:
                             break
 
                 print response,
@@ -112,11 +126,10 @@ def client_sender(buffer):
                 buffer = raw_input("")
                 buffer += "\n"
                 client.send(buffer)
-        except:
+    except:
 
-            print "[*] Exception! Exiting."
-
-            client.close()
+        print "[*] Exception! Exiting."
+        client.close()
 
 def server_loop():
     global target
@@ -148,6 +161,40 @@ def client_handler(client_socket):
     global command
 
     if len(upload_destination):
+        file_buffer = ""
+
+        while True:
+            data = client_socket.recv(1024)
+
+            if not data:
+                break
+            else:
+                file_buffer += data
+
+        try:
+            file_descriptor = open(upload_destination,"wb")
+            file_descriptor.write(file_buffer)
+            file_descriptor.close()
+
+            client_socket.send("Successfully saved file to \
+                               %s\r\n" %upload_destination)
+        except:
+            client_socket.send("Failed to save to file to %s\r\n"%upload_destination)
+
+
+     if len(execute):
+        output = run_command(execute)
+        client_socket.send(output)
+    if command:
+        while True:
+            client_socket.send("<BHP:#>")
+            cmd_buffer = ""
+            while "\n" not in cmd_buffer:
+                cmd_buffer += client_socket.recv(1024)
+
+        response = run_command(cmd_buffer)
+        client_socket.send(response)
+
 
 main()
 
