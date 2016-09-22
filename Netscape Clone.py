@@ -13,18 +13,10 @@ execute = ""
 target = ""
 upload_destination = ""
 port = 0
-opts =""
+opts = ""
+
 
 def usage():
-
-
-
-
-
-    """
-
-    :rtype: usage
-    """
     print "BHP Net Tool"
     print
     print "Usage:bhpnet.py -t target_host -p port"
@@ -44,6 +36,7 @@ def usage():
     print "echo 'ABCDEFGHI' | ./bhpnet.py -t 192.168.11.12 -p 135"
     sys.exit(0)
 
+
 def main():
     global listen
     global port
@@ -56,56 +49,53 @@ def main():
     if not len(sys.argv[1:]):
         usage()
 
+    try:
+        opts, args = getopt.getopt(sys.argv[1], "hle:t:p:cu:",
+                                   ["help", "listen", "execute", "target", "port", "command", "upload"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
 
-
-     try:
-            opts,args= getopt.getopt(sys.argv[1],"hle:t:p:cu:",
-                                     ["help","listen","execute","target","port","command","upload"])
-     except getopt.GetoptError as err:
-            print str(err)
+    for o, a in opts:
+        if o in ("-h", "--help"):
             usage()
-
-
-     for o,a in opts:
-         if o in ("-h", "--help"):
-             usage()
-         elif o in ("-l","--listen"):
-             listen = True
-         elif o in ("-e","--execute"):
-             execute = True
-         elif o in ("-c","--commandshell"):
-             command = True
-         elif o in ("-u","--upload"):
-             upload_destination = a
-         elif o in ("-t","--target"):
-             target = a
-         elif o in ("-p","--port"):
-             port = int(a)
-         else:
-                assert False, "Unhandled Option"
+        elif o in ("-l", "--listen"):
+            listen = True
+        elif o in ("-e", "--execute"):
+            execute = True
+        elif o in ("-c", "--commandshell"):
+            command = True
+        elif o in ("-u", "--upload"):
+            upload_destination = a
+        elif o in ("-t", "--target"):
+            target = a
+        elif o in ("-p", "--port"):
+            port = int(a)
+        else:
+            assert False, "Unhandled Option"
 
 
 
 
 
-#are we going to listen or just send data from stdin?
+            # are we going to listen or just send data from stdin?
 
     if not listen and len(target) and port > 0:
-        buffer =sys.stdin.read()
+        buffer = sys.stdin.read()
 
         client_sender(buffer)
     if listen:
-              server_loop()
+        server_loop()
+
 
 def client_sender(buffer):
-
-    client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
-        client.connect((target,port))
+        client.connect((target, port))
 
         if len(buffer):
-                client.send(buffer)
+            client.send(buffer)
 
         while True:
 
@@ -114,12 +104,12 @@ def client_sender(buffer):
 
             while recv_len:
 
-                data     = client.recv(4096)
+                data = client.recv(4096)
                 recv_len = len(data)
-                response+= data
+                response += data
 
                 if recv_len < 4096:
-                            break
+                    break
 
                 print response,
 
@@ -131,29 +121,32 @@ def client_sender(buffer):
         print "[*] Exception! Exiting."
         client.close()
 
+
 def server_loop():
     global target
 
     if not len(target):
         target = "0.0.0.0"
-    server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    server.bind((target,port))
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((target, port))
 
     server.listen(5)
 
     while True:
         client_socket, addr = server.accept()
-        client_thread = threading.Thread(target=client_handler,args=(client_socket,))
+        client_thread = threading.Thread(target=client_handler, args=(client_socket,))
         client_thread.start()
+
 
 def run_command(command):
     command = command.rstrip()
     try:
-        output = subprocess.check_output(command,stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
     except:
         output = "Failed to execute command.\r\n"
 
     return output
+
 
 def client_handler(client_socket):
     global upload
@@ -172,23 +165,22 @@ def client_handler(client_socket):
                 file_buffer += data
 
         try:
-            file_descriptor = open(upload_destination,"wb")
+            file_descriptor = open(upload_destination, "wb")
             file_descriptor.write(file_buffer)
             file_descriptor.close()
 
             client_socket.send("Successfully saved file to \
-                               %s\r\n" %upload_destination)
+                               %s\r\n" % upload_destination)
         except:
-            client_socket.send("Failed to save to file to %s\r\n"%upload_destination)
+            client_socket.send("Failed to save to file to %s\r\n" % upload_destination)
 
-
-     if len(execute):
-        output = run_command(execute)
-        client_socket.send(output)
-    if command:
-        while True:
-            client_socket.send("<BHP:#>")
-            cmd_buffer = ""
+        if len(execute):
+            output = run_command(execute)
+            client_socket.send(output)
+        if command:
+            while True:
+                client_socket.send("<BHP:#>")
+                cmd_buffer = ""
             while "\n" not in cmd_buffer:
                 cmd_buffer += client_socket.recv(1024)
 
@@ -197,4 +189,3 @@ def client_handler(client_socket):
 
 
 main()
-
