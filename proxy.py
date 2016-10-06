@@ -69,10 +69,47 @@ def proxy_handler(client_socket, remote_host, remote_port, receive_first):
 
             break
 
+#this http://code.activestate.com/recipes/142812-hex-dumper/
+
+def hexdump(src, lenght=16):
+    result =[]
+    digits = 4 if isinstance(src,unicode) else 2
+    for i in xrange(0, len(src),lenght):
+        s = src[i:i+lenght]
+        hexa = b' '.join(["%0*X" %(digits,ord(x)) for x in s])
+        text = b''.join([x if 0x20 <= ord(x) < 0x7F else b'.' for x in s])
+        result.append( b"%04X %-*s %s" %(i,lenght*(digits +1),hexa,text))
+
+def receive_from(connection):
+    buffer=""
+
+    # timeout needs to be adjusted for specific targets
+    connection.settimeout(2)
+
+    try:
+        #keep reading data until there's no more data
+            while True:
+                data = connection.recv(4096)
+
+                if not data:
+                        break
+
+                buffer += data
+        except:
+        pass
+        return buffer
+
+
+def request_handler(buffer):
+    return  buffer
+
+def response_handler(buffer):
+    return buffer
+
 
 
 def main():
-    if len(sys.argv[1:]) != 5
+    if len(sys.argv[1:]) != 5:
         print "Usage ./proxy.py [localhost] [localport] [remotehost] [remoteport] [receive_first]"
         print "Example ´: ./proxy.py 127.0.0.1 9000 10.12.132.1 9000 True"
         sys.exit(0)
